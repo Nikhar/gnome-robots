@@ -23,6 +23,7 @@ PKG_CHECK_MODULES(ROBOTS, [
   gtk+-3.0 >= $GTK_REQUIRED
   librsvg-2.0 >= $RSVG_REQUIRED
   libcanberra-gtk3 >= $CANBERRA_GTK_REQUIRED
+  libgames-scores
 ])
 
 AC_PATH_PROG([APPDATA_VALIDATE], [appdata-validate], [/bin/true])
