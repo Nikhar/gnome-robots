@@ -1,14 +1,10 @@
 bin_PROGRAMS = gnome-robots
 
 gnome_robots_SOURCES = \
-	gnobots.c \
-	gnobots.h \
-	statusbar.c \
-	statusbar.h \
+	gnome-robots.c \
+	gnome-robots.h \
 	gameconfig.c \
 	gameconfig.h \
-	menu.c \
-	menu.h \
 	properties.c \
 	properties.h \
 	graphics.c \
@@ -28,14 +24,10 @@ gnome_robots_SOURCES = \
 	games-controls.h \
 	games-file-list.c \
 	games-file-list.h \
-	games-fullscreen-action.c \
-	games-fullscreen-action.h \
 	games-gridframe.c \
 	games-gridframe.h \
 	games-preimage.c \
 	games-preimage.h \
-	games-stock.c \
-	games-stock.h \
 	cursor-down.h \
 	cursor-down-left.h \
 	cursor-down-right.h \

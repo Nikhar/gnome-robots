@@ -29,7 +29,7 @@
 
 #include "properties.h"
 #include "gameconfig.h"
-#include "gnobots.h"
+#include "gnome-robots.h"
 #include "graphics.h"
 #include "gbdefs.h"
 #include "keyboard.h"
@@ -76,7 +76,7 @@ struct _GnobotsProperties {
   GdkRGBA bgcolour;
   gint selected_config;
   guint keys[N_KEYS];
-  gchar *themename;
+  const gchar *themename;
 };
 /**********************************************************************/
 
@@ -89,13 +89,6 @@ static GtkWidget *propbox = NULL;
 static GamesFileList *theme_list = NULL;
 
 static GnobotsProperties properties;
-
-static const guint default_keys[N_KEYS] = {
-  GDK_KEY_KP_Home, GDK_KEY_KP_Up, GDK_KEY_KP_Page_Up,
-  GDK_KEY_KP_Left, GDK_KEY_KP_Begin, GDK_KEY_KP_Right,
-  GDK_KEY_KP_End, GDK_KEY_KP_Down, GDK_KEY_KP_Page_Down,
-  GDK_KEY_KP_Add, GDK_KEY_KP_Multiply, GDK_KEY_KP_Enter
-};
 
 /**********************************************************************/
 
@@ -192,7 +185,7 @@ pmap_selection (GtkWidget * widget, gpointer data)
 
   conf_set_theme (properties.themename);
 
-  set_game_graphics (properties.themename);
+  load_game_graphics ();
   clear_game_area ();
 }
 
@@ -286,12 +279,18 @@ static void
 defkey_cb (GtkWidget * widget, gpointer data)
 {
   gint i;
-  guint *dkeys = (guint *) data;
 
   for (i = 0; i < 12; ++i) {
-    properties.keys[i] = dkeys[i];
-    conf_set_control_key (i, properties.keys[i]);
+    GVariant *variant;
+    char buffer[64];
+
+    g_snprintf (buffer, sizeof (buffer), KEY_CONTROL_KEY, i);
+    g_settings_reset (settings, buffer);
+    variant = g_settings_get_default_value (settings, buffer);
+    properties.keys[i] = g_variant_get_int32 (variant);
+    g_variant_unref (variant);
   }
+
   keyboard_set (properties.keys);
 }
 
@@ -351,14 +350,14 @@ make_theme_menu (void)
 static void
 bg_color_callback (GtkWidget * widget, gpointer data)
 {
-  gtk_color_button_get_rgba (GTK_COLOR_BUTTON (widget),
+  gtk_color_chooser_get_rgba (GTK_COLOR_CHOOSER (widget),
 			      &properties.bgcolour);
   set_background_color (properties.bgcolour);
   clear_game_area ();
   conf_set_background_color (&properties.bgcolour);
 }
 
-gchar *
+const gchar *
 properties_theme_name (void)
 {
   return properties.themename;
@@ -392,10 +391,9 @@ show_properties_dialog (void)
   if (propbox)
     return;
 
-  propbox = gtk_dialog_new_with_buttons (_("Robots Preferences"),
-					 GTK_WINDOW (app),
-					 GTK_DIALOG_DESTROY_WITH_PARENT,
-					 GTK_STOCK_CLOSE, GTK_RESPONSE_ACCEPT,
+  propbox = gtk_dialog_new_with_buttons (_("Preferences"),
+					 GTK_WINDOW (window),
+					 GTK_DIALOG_USE_HEADER_BAR,
 					 NULL);
   gtk_container_set_border_width (GTK_CONTAINER (propbox), 5);
   gtk_box_set_spacing (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (propbox))), 2);
@@ -471,7 +469,7 @@ show_properties_dialog (void)
 
   label = gtk_label_new_with_mnemonic (_("_Image theme:"));
   gtk_widget_set_hexpand (label, TRUE);
-  gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
+  gtk_widget_set_halign (label, GTK_ALIGN_START);
   gtk_grid_attach (GTK_GRID (grid), label, 0, 0, 1, 1);
 
   pmapmenu = make_theme_menu ();
@@ -482,11 +480,11 @@ show_properties_dialog (void)
   gtk_grid_attach (GTK_GRID (grid), pmapmenu, 1, 0, 1, 1);
 
   label = gtk_label_new_with_mnemonic (_("_Background color:"));
-  gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
+  gtk_widget_set_halign (label, GTK_ALIGN_START);
   gtk_grid_attach (GTK_GRID (grid), label, 0, 1, 1, 1);
 
   w = gtk_color_button_new ();
-  gtk_color_button_set_rgba (GTK_COLOR_BUTTON (w), &properties.bgcolour);
+  gtk_color_chooser_set_rgba (GTK_COLOR_CHOOSER (w), &properties.bgcolour);
   g_signal_connect (G_OBJECT (w), "color_set",
 		    G_CALLBACK (bg_color_callback), NULL);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label), w);
@@ -505,18 +503,18 @@ show_properties_dialog (void)
 
   controls_list = games_controls_list_new (settings);
   games_controls_list_add_controls (GAMES_CONTROLS_LIST (controls_list),
-				    "key00", _("Key to move NW"), default_keys[0],
-				    "key01", _("Key to move N"), default_keys[1],
-				    "key02", _("Key to move NE"), default_keys[2],
-				    "key03", _("Key to move W"), default_keys[3],
-				    "key05", _("Key to move E"), default_keys[5],
-				    "key06", _("Key to move SW"), default_keys[6],
-				    "key07", _("Key to move S"), default_keys[7],
-				    "key08", _("Key to move SE"), default_keys[8],
-                                    "key04", _("Key to hold"), default_keys[4],
-				    "key09", _("Key to teleport"), default_keys[9],
-				    "key10", _("Key to teleport randomly"), default_keys[10],
-				    "key11", _("Key to wait"), default_keys[11],
+				    "key00", _("Key to move NW"), g_settings_get_default_value (settings, "key00"),
+				    "key01", _("Key to move N"), g_settings_get_default_value (settings, "key01"),
+				    "key02", _("Key to move NE"), g_settings_get_default_value (settings, "key02"),
+				    "key03", _("Key to move W"), g_settings_get_default_value (settings, "key03"),
+				    "key05", _("Key to move E"), g_settings_get_default_value (settings, "key04"),
+				    "key06", _("Key to move SW"), g_settings_get_default_value (settings, "key05"),
+				    "key07", _("Key to move S"), g_settings_get_default_value (settings, "key06"),
+				    "key08", _("Key to move SE"), g_settings_get_default_value (settings, "key07"),
+                                    "key04", _("Key to hold"), g_settings_get_default_value (settings, "key08"),
+				    "key09", _("Key to teleport"), g_settings_get_default_value (settings, "key09"),
+				    "key10", _("Key to teleport randomly"), g_settings_get_default_value (settings, "key10"),
+				    "key11", _("Key to wait"), g_settings_get_default_value (settings, "key11"),
                                     NULL);
 
   gtk_box_pack_start (GTK_BOX (vbox), controls_list, TRUE, TRUE, 0);
@@ -527,7 +525,7 @@ show_properties_dialog (void)
 
   dbut = gtk_button_new_with_mnemonic (_("_Restore Defaults"));
   g_signal_connect (G_OBJECT (dbut), "clicked",
-		    G_CALLBACK (defkey_cb), (gpointer) default_keys);
+		    G_CALLBACK (defkey_cb), NULL);
   gtk_box_pack_start (GTK_BOX (hbox), dbut, FALSE, FALSE, 0);
 
   label = gtk_label_new_with_mnemonic (_("Keyboard"));
@@ -539,7 +537,6 @@ show_properties_dialog (void)
   g_signal_connect (G_OBJECT (propbox), "response",
 		    G_CALLBACK (apply_cb), NULL);
 
-  gtk_window_set_modal (GTK_WINDOW (propbox), TRUE);
   gtk_widget_show_all (propbox);
 }
 
@@ -590,7 +587,7 @@ load_properties (void)
   properties.show_toolbar = g_settings_get_boolean (settings,
                                                     KEY_SHOW_TOOLBAR);
 
-  set_game_graphics (properties.themename);
+  load_game_graphics ();
   set_game_config (properties.selected_config);
   keyboard_set (properties.keys);
   return TRUE;
@@ -609,7 +606,7 @@ load_keys (void)
 }
 
 void
-conf_set_theme (gchar * value)
+conf_set_theme (const gchar * value)
 {
   g_settings_set_string (settings, KEY_THEME, value);
 }

@@ -31,11 +31,10 @@
 #include "gameconfig.h"
 #include "keyboard.h"
 #include "game.h"
-#include "gnobots.h"
+#include "gnome-robots.h"
 #include "sound.h"
 #include "properties.h"
 #include "menu.h"
-#include "statusbar.h"
 #include "graphics.h"
 #include "cursors.h"
 #include "games-scores.h"
@@ -112,7 +111,7 @@ message_box (gchar * msg)
 {
   GtkWidget *box;
 
-  box = gtk_message_dialog_new (GTK_WINDOW (app), GTK_DIALOG_MODAL,
+  box = gtk_message_dialog_new (GTK_WINDOW (window), GTK_DIALOG_MODAL,
                                 GTK_MESSAGE_INFO, GTK_BUTTONS_OK, "%s", msg);
   gtk_dialog_run (GTK_DIALOG (box));
   gtk_widget_destroy (box);
@@ -140,7 +139,7 @@ show_scores (gint pos, gboolean endofgame)
     if (sorrydialog != NULL) {
       gtk_window_present (GTK_WINDOW (sorrydialog));
     } else {
-      sorrydialog = gtk_message_dialog_new_with_markup (GTK_WINDOW (app),
+      sorrydialog = gtk_message_dialog_new_with_markup (GTK_WINDOW (window),
                                                         GTK_DIALOG_DESTROY_WITH_PARENT,
                                                         GTK_MESSAGE_INFO,
                                                         GTK_BUTTONS_NONE,
@@ -149,7 +148,7 @@ show_scores (gint pos, gboolean endofgame)
                                                         ("Game over!"),
                                                         _
                                                         ("Great work, but unfortunately your score did not make the top ten."));
-      gtk_dialog_add_buttons (GTK_DIALOG (sorrydialog), GTK_STOCK_QUIT,
+      gtk_dialog_add_buttons (GTK_DIALOG (sorrydialog), _("_Quit"),
                               GTK_RESPONSE_REJECT, _("_New Game"),
                               GTK_RESPONSE_ACCEPT, NULL);
       gtk_dialog_set_default_response (GTK_DIALOG (sorrydialog),
@@ -162,7 +161,7 @@ show_scores (gint pos, gboolean endofgame)
     if (scoresdialog != NULL) {
       gtk_window_present (GTK_WINDOW (scoresdialog));
     } else {
-      scoresdialog = games_scores_dialog_new (GTK_WINDOW (app), 
+      scoresdialog = games_scores_dialog_new (GTK_WINDOW (window),
                                         highscores, _("Robots Scores"));
       games_scores_dialog_set_category_description (GAMES_SCORES_DIALOG
                                                     (scoresdialog),
@@ -255,7 +254,7 @@ kill_player (void)
   endlev_counter = 0;
   add_aieee_bubble (player_xpos, player_ypos);
   player_animation_dead ();
-  set_move_menu_sensitivity (FALSE);
+  set_move_action_sensitivity (FALSE);
 }
 
 /**
@@ -307,8 +306,7 @@ add_kill (gint type)
     safe_teleports = game_config ()->max_safe_teleports;
   }
 
-  gnobots_statusbar_set (score, current_level + 1, safe_teleports,
-                         num_robots1, num_robots2);
+  update_game_status (score, current_level + 1, safe_teleports);
 }
 
 
@@ -431,6 +429,8 @@ generate_level (void)
     safe_teleports = game_config ()->max_safe_teleports;
   }
 
+  update_game_status (score, current_level, safe_teleports);
+
   for (i = 0; i < num_robots1; ++i) {
     while (1) {
       xp = rand () % GAME_WIDTH;
@@ -514,13 +514,11 @@ update_arena (void)
       endlev_counter = 0;
       add_yahoo_bubble (player_xpos, player_ypos);
       reset_player_animation ();
-      set_move_menu_sensitivity (FALSE);
+      set_move_action_sensitivity (FALSE);
     }
   }
 
-  gnobots_statusbar_set (score, current_level + 1, safe_teleports,
-                         num_robots1, num_robots2);
-
+  update_game_status (score, current_level + 1, safe_teleports);
 }
 
 
@@ -560,9 +558,8 @@ timeout_cb (void *data)
       clear_game_area ();
       generate_level ();
       game_state = STATE_PLAYING;
-      set_move_menu_sensitivity (TRUE);
-      gnobots_statusbar_set (score, current_level + 1, safe_teleports,
-                             num_robots1, num_robots2);
+      set_move_action_sensitivity (TRUE);
+      update_game_status (score, current_level + 1, safe_teleports);
     }
   } else if (game_state == STATE_DEAD) {
     ++endlev_counter;
@@ -625,7 +622,7 @@ init_game (void)
 {
   create_game_timer ();
 
-  g_signal_connect (GTK_WIDGET (app), "key_press_event",
+  g_signal_connect (GTK_WIDGET (window), "key_press_event",
                     G_CALLBACK (keyboard_cb), 0);
 
   start_new_game ();
@@ -660,17 +657,10 @@ start_new_game (void)
   generate_level ();
   clear_game_area ();
 
-  if (game_config ()->maximum_type2 > 0) {
-    gnobots_statusbar_show_both (TRUE);
-  } else {
-    gnobots_statusbar_show_both (FALSE);
-  }
-
   game_state = STATE_PLAYING;
 
-  gnobots_statusbar_set (score, current_level + 1, safe_teleports,
-                         num_robots1, num_robots2);
-  set_move_menu_sensitivity (TRUE);
+  update_game_status (score, current_level + 1, safe_teleports);
+  set_move_action_sensitivity (TRUE);
 }
 
 
@@ -1217,7 +1207,7 @@ safe_teleport (void)
   }
 
   if (safe_teleports <= 0)
-    return random_teleport ();
+    return FALSE;
 
   for (i = 0; i < GAME_WIDTH; ++i) {
     for (j = 0; j < GAME_HEIGHT; ++j) {
@@ -1242,6 +1232,7 @@ safe_teleport (void)
       reset_player_animation ();
 
       safe_teleports -= 1;
+      update_game_status (score, current_level, safe_teleports);
 
       update_arena ();
       break;

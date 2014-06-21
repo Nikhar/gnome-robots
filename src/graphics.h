@@ -1,6 +1,8 @@
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
 
+#include <gtk/gtk.h>
+
 /* The size of an individual tile. */
 extern gint tile_width;
 extern gint tile_height;
@@ -13,7 +15,6 @@ gboolean draw_cb (GtkWidget * w, cairo_t * cr, gpointer data);
 gboolean load_game_graphics (void);
 gboolean free_game_graphics (void);
 gint num_game_graphics (void);
-void set_game_graphics (gchar *);
 void set_background_color (GdkRGBA color);
 void set_background_color_from_name (gchar * name);
 

@@ -1,12 +1,12 @@
 <schemalist>
-  <schema id="org.gnome.robots" path="/org/gnome/robots/" gettext-domain="gnome-games">
+  <schema id="org.gnome.robots" path="/org/gnome/robots/" gettext-domain="gnome-robots">
     <key name="show-toolbar" type="b">
       <default>true</default>
       <summary>Show toolbar</summary>
       <description>Show toolbar. A standard option for toolbars.</description>
     </key>
     <key name="theme" type="s">
-      <default>"robots"</default>
+      <default>"robots.svg"</default>
       <summary>Robot image theme</summary>
       <description>Robot image theme.  The theme of the images to use for the robots.</description>
     </key>
@@ -107,10 +107,6 @@
     <key name="window-is-maximized" type="b">
       <default>false</default>
       <summary>true if the window is maximized</summary>
-    </key>
-    <key name="window-is-fullscreen" type="b">
-      <default>false</default>
-      <summary>true if the window is fullscreen</summary>
     </key>
   </schema>
 </schemalist>
