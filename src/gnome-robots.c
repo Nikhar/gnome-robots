@@ -292,8 +292,6 @@ startup (GtkApplication *app, gpointer user_data)
   bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
   textdomain (GETTEXT_PACKAGE);
 
-  games_scores_startup ();
-
   gettimeofday (&tv, NULL);
   srand (tv.tv_usec);
 
